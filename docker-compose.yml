@@ -1,0 +1,45 @@
+# One command: Postgres + the app (migrations and seed run on app start). Open http://localhost:8010
+# Needs a .env next to this file with POSTGRES_PASSWORD, ANALYTICS_RO_PASSWORD and SESSION_SECRET: there are no default secrets.
+services:
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: spaceship
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: spaceship
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U spaceship -d spaceship"]
+      interval: 2s
+      retries: 30
+
+  app:
+    build: .
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql+psycopg://spaceship:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}@db:5432/spaceship
+      DATABASE_URL_READONLY: postgresql+psycopg://analytics_ro:${ANALYTICS_RO_PASSWORD:?set ANALYTICS_RO_PASSWORD in .env}@db:5432/spaceship
+      ANALYTICS_RO_PASSWORD: ${ANALYTICS_RO_PASSWORD:?set ANALYTICS_RO_PASSWORD in .env}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENAI_BASE_URL: ${OPENAI_BASE_URL:-}
+      OPENAI_MODEL: ${OPENAI_MODEL:-gpt-6-luna}
+      OPENAI_MODEL_SUBAGENT: ${OPENAI_MODEL_SUBAGENT:-}
+      TYPESAFE_API_KEY: ${TYPESAFE_API_KEY:-}
+      JEV_THRESHOLD: ${JEV_THRESHOLD:-0.6}
+      JEV_TIMEOUT_MS: ${JEV_TIMEOUT_MS:-1000}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
+      VISITOR_EMAIL: ${VISITOR_EMAIL:-}
+      VISITOR_PASSWORD: ${VISITOR_PASSWORD:-}
+      SESSION_SECRET: ${SESSION_SECRET:?set SESSION_SECRET in .env (python -c "import secrets; print(secrets.token_urlsafe(48))")}
+      SETTINGS_KEY: ${SETTINGS_KEY:-}  # Fernet key: lets the Backoffice store the AI key (python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())")
+      SESSION_HOURS: ${SESSION_HOURS:-8}
+      SECURE_COOKIES: ${SECURE_COOKIES:-0}  # plain http on localhost; set 1 behind HTTPS
+    ports:
+      - "${APP_PORT:-8010}:8000"
+
+volumes:
+  pgdata:
