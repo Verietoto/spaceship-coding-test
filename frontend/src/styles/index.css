@@ -852,7 +852,7 @@ tr.group-row th { padding-top: 14px; color: var(--ink); background: var(--soft);
 @media print {
   @page { margin: 14mm; }
   body { background: #fff; color: #101828; }
-  .sidebar, .header, .copilot, .resize-handle, .filterbar, .card-actions, .calc, .ask, .seg, .side-card { display: none !important; }
+  .sidebar, .header, .copilot, .resize-handle, .filterbar, .card-actions, .calc, .ask, .seg, .side-card, .tour-root { display: none !important; }
   .print-only { display: block; margin-bottom: 14px; }
   .print-only h1 { font-size: 20px; }
   .print-only p { font-size: 12px; }
@@ -862,3 +862,46 @@ tr.group-row th { padding-top: 14px; color: var(--ink); background: var(--soft);
   .bars, .heat-grid, .kpi-grid { break-inside: avoid; }
   * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 }
+
+/* ---------- onboarding tour */
+.tour-shield { position: fixed; inset: 0; z-index: 90; }
+.tour-dim { position: fixed; inset: 0; z-index: 91; background: rgba(8, 12, 26, 0.62); }
+.tour-hole {
+  position: fixed; z-index: 91; border-radius: 12px; pointer-events: none;
+  box-shadow: 0 0 0 100vmax rgba(8, 12, 26, 0.62), 0 0 0 2px var(--ai), 0 0 0 7px color-mix(in oklab, var(--ai) 30%, transparent);
+  transition: top 0.25s ease, left 0.25s ease, width 0.25s ease, height 0.25s ease;
+}
+.tour-card {
+  position: fixed; z-index: 92; width: min(400px, calc(100vw - 24px)); padding: 20px 20px 16px; border: 1px solid var(--line); border-radius: 18px;
+  background: var(--card); box-shadow: 0 18px 50px rgba(8, 12, 26, 0.35); color: var(--ink); animation: tour-in 0.22s ease;
+}
+.tour-card.welcome, .tour-card.finish { width: min(460px, calc(100vw - 24px)); }
+.tour-card.side-dock { right: 12px; width: auto; }
+.tour-close { position: absolute; top: 10px; right: 10px; }
+.tour-mark { display: grid; place-items: center; width: 44px; height: 44px; margin-bottom: 12px; border-radius: 14px; background: linear-gradient(135deg, var(--ai), var(--ai-dark)); color: #fff; font-size: 20px; font-weight: 800; }
+.tour-chapter { display: inline-block; margin-bottom: 8px; padding: 2px 9px; border-radius: 999px; background: var(--ai-bg); color: var(--ai); font-size: 11px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; }
+.tour-title { margin: 0 0 6px; padding-right: 28px; font-size: 18px; line-height: 1.3; }
+.tour-body { margin: 0; color: var(--ink2); font-size: 13.5px; line-height: 1.6; }
+.tour-points { display: grid; gap: 8px; margin: 14px 0 0; padding: 0; list-style: none; }
+.tour-points li { display: flex; align-items: center; gap: 8px; color: var(--ink2); font-size: 13px; }
+.tour-points svg { flex: none; color: var(--ai); }
+.tour-time { margin: 12px 0 0; color: var(--mute); font-size: 12px; }
+.tour-time:empty { display: none; }
+.tour-try { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.tour-foot { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 16px; }
+.tour-progress { display: inline-flex; align-items: center; gap: 10px; }
+.tour-dots { display: inline-flex; gap: 4px; }
+.tour-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--line3); }
+.tour-dot[data-done] { background: var(--ai-line2); }
+.tour-dot[aria-current] { width: 18px; border-radius: 3px; background: var(--ai); }
+.tour-count { color: var(--mute); font-size: 12px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.tour-actions { display: inline-flex; gap: 6px; }
+.tour-menu { display: grid; gap: 4px; min-width: 190px; }
+.tour-menu .btn { justify-content: flex-start; }
+@keyframes tour-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .tour-card { animation: none; } .tour-hole { transition: none; } }
+.tour-chapter-row { display: flex; align-items: center; gap: 8px; margin: 0 0 8px; }
+.tour-chapter-row .tour-chapter { margin-bottom: 0; }
+.tour-chapter-no { color: var(--mute); font-size: 11.5px; font-weight: 700; }
+.tour-items { margin-top: 12px; }
+.tour-skips { display: flex; gap: 14px; margin: 12px 0 0; }

@@ -1,4 +1,5 @@
 // Top of the main column: page title + context, then language, theme, account.
+import type { ReactNode } from 'react'
 import { useApp } from '../app/useApp'
 import { useMessages } from '../i18n'
 import { common } from '../i18n/common'
@@ -8,7 +9,8 @@ import { AccountMenu } from './AccountMenu'
 import { LanguageSwitch } from './LanguageSwitch'
 import { ThemeToggle } from './ThemeToggle'
 
-export function Header() {
+/** `extra` is shown first among the header tools (the tour's help button). */
+export function Header({ extra }: { extra?: ReactNode }) {
   const { section, view } = useApp()
   const t = useMessages(shell)
   const tc = useMessages(common)
@@ -24,7 +26,8 @@ export function Header() {
           <span>{t('data_note')}</span>
         </div>
       </div>
-      <div className="header-tools">
+      <div className="header-tools" data-tour="header-tools">
+        {extra}
         <LanguageSwitch />
         <ThemeToggle />
         <AccountMenu />

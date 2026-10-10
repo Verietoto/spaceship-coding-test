@@ -30,18 +30,18 @@ export function Sidebar({ collapsed, onToggle }: { collapsed: boolean; onToggle:
           <Icon name="chevron" size={16} />
         </button>
       </div>
-      <nav aria-label={t('sections')}>
+      <nav aria-label={t('sections')} data-tour="sidebar">
         {SECTIONS.map((s, i) => {
           const isOn = s === section
           return (
-            <button key={s} type="button" className="nav-item" aria-current={isOn ? 'page' : undefined} onClick={() => go(s)} title={collapsed ? tc(`nav_${s}`) : undefined} aria-label={tc(`nav_${s}`)}>
+            <button key={s} type="button" className="nav-item" data-tour={`nav-${s}`} aria-current={isOn ? 'page' : undefined} onClick={() => go(s)} title={collapsed ? tc(`nav_${s}`) : undefined} aria-label={tc(`nav_${s}`)}>
               {isOn || collapsed ? <Icon name={s} size={20} /> : <span className="nav-num" aria-hidden="true">{i + 1}</span>}
               <span className="nav-text">{tc(`nav_${s}`)}</span>
             </button>
           )
         })}
         {isAdmin && (
-          <button type="button" className="nav-item" aria-current={section === 'backoffice' ? 'page' : undefined} onClick={() => go('backoffice')} title={collapsed ? tc('nav_backoffice') : undefined} aria-label={tc('nav_backoffice')}>
+          <button type="button" className="nav-item" data-tour="nav-backoffice" aria-current={section === 'backoffice' ? 'page' : undefined} onClick={() => go('backoffice')} title={collapsed ? tc('nav_backoffice') : undefined} aria-label={tc('nav_backoffice')}>
             <Icon name="backoffice" size={20} />
             <span className="nav-text">{tc('nav_backoffice')}</span>
           </button>
@@ -65,7 +65,7 @@ export function Sidebar({ collapsed, onToggle }: { collapsed: boolean; onToggle:
           ))}
         </nav>
       )}
-      <div className="side-card glow-host">
+      <div className="side-card glow-host" data-tour="build">
         <GlowIcon name="sparkle" tone="ai" size={38} breathe />
         <strong>{t('build_title')}</strong>
         <p>{t('build_desc')}</p>

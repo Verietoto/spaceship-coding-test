@@ -59,7 +59,7 @@ export function FilterBar() {
   if (f.arrived_start || f.arrived_end) chips.push({ key: 'arrived', text: t('eq', { k: tc('f_arrived'), v: fmt.range(f.arrived_start, f.arrived_end) }), remove: () => setArrived(null, null) })
 
   return (
-    <div className="filterbar">
+    <div className="filterbar" data-tour="filters">
       <div className="card filter-card">
         {bounds && <PeriodPicker years={years} bounds={bounds} />}
         {CORE.map((d) => (

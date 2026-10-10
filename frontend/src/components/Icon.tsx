@@ -34,6 +34,7 @@ const ICONS = {
   undo: '<path d="M9 7 L4 12 L9 17"/><path d="M4 12 H15 A5 5 0 0 1 15 22"/>',
   send: '<path d="M4 12 L20 4 L14 20 L11 13 Z"/>',
   close: '<path d="M6 6 L18 18 M18 6 L6 18"/>',
+  help: '<circle cx="12" cy="12" r="9"/><path d="M9.6 9.3 C9.8 7.9 10.8 7 12.1 7 C13.6 7 14.7 8 14.7 9.3 C14.7 11 12.2 11.2 12.2 13.2"/><path d="M12.2 16.6 V16.8"/>',
   backoffice: '<path d="M4 7 H20"/><circle cx="9" cy="7" r="2"/><path d="M4 17 H20"/><circle cx="15" cy="17" r="2"/>',
   plus: '<path d="M12 5 V19 M5 12 H19"/>',
   trash: '<path d="M5 7 H19"/><path d="M9 7 V4 H15 V7"/><path d="M7 7 L8 20 H16 L17 7"/>',

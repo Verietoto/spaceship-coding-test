@@ -26,6 +26,8 @@ import { Backoffice } from './features/backoffice/Backoffice'
 import { Knowledge } from './features/knowledge/Knowledge'
 import { Reports } from './features/reports/Reports'
 import { Risk } from './features/risk/Risk'
+import { TourButton } from './features/tour/TourButton'
+import { TourProvider } from './features/tour/TourProvider'
 import { useMessages } from './i18n'
 import { shell } from './i18n/shell'
 
@@ -71,24 +73,26 @@ function Shell() {
   const hasFilters = !isBuilder && section !== 'quality' && section !== 'knowledge' && section !== 'backoffice'
 
   return (
-    <div className="app" style={{ '--sidebar-w': `${layout.sidebarPx}px`, '--copilot-w': `${layout.copilotW}px` } as CSSProperties}>
-      <Sidebar collapsed={layout.collapsed} onToggle={layout.toggleSidebar} />
-      <div className="main">
-        <Header />
-        <div className={`workspace${isBuilder ? ' solo' : ''}`}>
-          <main className="content">
-            <PrintHeader />
-            {!isBuilder && <CommandBar copilot={copilot} />}
-            {hasFilters && <FilterBar />}
-            {content}
-          </main>
-          {!isBuilder && (
-            <ResizeHandle value={layout.copilotW} min={COPILOT.min} max={layout.max} label={t('resize_copilot')} onChange={layout.resizeCopilot} onReset={layout.resetCopilot} />
-          )}
-          {!isBuilder && <CopilotPanel copilot={copilot} />}
+    <TourProvider>
+      <div className="app" style={{ '--sidebar-w': `${layout.sidebarPx}px`, '--copilot-w': `${layout.copilotW}px` } as CSSProperties}>
+        <Sidebar collapsed={layout.collapsed} onToggle={layout.toggleSidebar} />
+        <div className="main">
+          <Header extra={<TourButton />} />
+          <div className={`workspace${isBuilder ? ' solo' : ''}`}>
+            <main className="content">
+              <PrintHeader />
+              {!isBuilder && <CommandBar copilot={copilot} />}
+              {hasFilters && <FilterBar />}
+              {content}
+            </main>
+            {!isBuilder && (
+              <ResizeHandle value={layout.copilotW} min={COPILOT.min} max={layout.max} label={t('resize_copilot')} onChange={layout.resizeCopilot} onReset={layout.resetCopilot} />
+            )}
+            {!isBuilder && <CopilotPanel copilot={copilot} />}
+          </div>
         </div>
       </div>
-    </div>
+    </TourProvider>
   )
 }
 

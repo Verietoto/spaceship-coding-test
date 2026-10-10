@@ -7,16 +7,17 @@ import { backoffice } from '../../i18n/backoffice'
 import { common } from '../../i18n/common'
 import { AiSettings } from './AiSettings'
 import { Documents } from './Documents'
+import { Users } from './Users'
 
 export function Backoffice() {
   const t = useMessages(backoffice)
   const tc = useMessages(common)
-  const [tab, setTab] = useState<'docs' | 'ai'>('docs')
+  const [tab, setTab] = useState<'docs' | 'ai' | 'users'>('docs')
   return (
     <>
       <SectionHead title={tc('nav_backoffice')} question={t('question')} />
-      <Seg label={t('tabs')} value={tab} onChange={setTab} options={[['docs', t('tab_docs')], ['ai', t('tab_ai')]]} />
-      {tab === 'docs' ? <Documents /> : <AiSettings />}
+      <Seg label={t('tabs')} value={tab} onChange={setTab} options={[['docs', t('tab_docs')], ['ai', t('tab_ai')], ['users', t('tab_users')]]} />
+      {tab === 'docs' ? <Documents /> : tab === 'ai' ? <AiSettings /> : <Users />}
     </>
   )
 }

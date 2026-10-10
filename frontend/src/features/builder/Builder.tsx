@@ -42,7 +42,7 @@ export function Builder({ onSaved }: { onSaved: (id: number) => void }) {
         <span aria-hidden="true">/</span>
         <strong>{tc('nav_build')}</strong>
       </div>
-      <form className="card prompt-card" onSubmit={handleGenerate}>
+      <form className="card prompt-card" onSubmit={handleGenerate} data-tour="build-prompt">
         <label>
           <span className="lab ai">{t('prompt_label')}</span>
           <textarea rows={2} value={prompt} onChange={(e) => setPrompt(e.target.value)} placeholder={t('example')} maxLength={1000} disabled={isLocked} />
@@ -51,7 +51,7 @@ export function Builder({ onSaved }: { onSaved: (id: number) => void }) {
           <Icon name="sparkle" size={16} /> {isLocked ? tc('ai_thinking') : t('generate')}
         </button>
       </form>
-      <div className="row">
+      <div className="row" data-tour="build-example">
         <button type="button" className="chip" onClick={() => setPrompt(t('example'))} disabled={isLocked}>
           {t('example')}
         </button>

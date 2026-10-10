@@ -100,7 +100,7 @@ export function Overview() {
             current={[f.start, f.end]}
             previous={data.compare.range ? [data.compare.range.start, data.compare.range.end] : null}
           />
-          <div className="kpi-grid">
+          <div className="kpi-grid" data-tour="kpis">
             <KpiCard icon="box" tone="t1" label={t('k_orders')} value={fmt.int(s.n)} delta={delta(s.n, b?.n ?? null, 'rel')} cmp={was(fmt.int(b?.n))} sub={t('s_orders')} hint={t('h_orders')} />
             <KpiCard icon="truck" tone="t3" label={t('k_deliv')} value={fmt.int(s.deliv_n)} delta={delta(s.deliv_n, b?.deliv_n ?? null, 'rel')} cmp={was(fmt.int(b?.deliv_n))} sub={t('s_deliv', { p: fmt.pct1(s.deliv) })} hint={t('h_deliv')} />
             <KpiCard
@@ -137,10 +137,12 @@ export function Overview() {
               hint={t('h_risk')}
             />
           </div>
-          <CalcTrace calc={data.calc} />
+          <div data-tour="calc">
+            <CalcTrace calc={data.calc} />
+          </div>
 
           <div className="grid-2">
-            <section className="card glow-host">
+            <section className="card glow-host" data-tour="trend">
               <div className="card-head">
                 <div className="card-title">
                   <GlowIcon name="forecast" tone="t6" />

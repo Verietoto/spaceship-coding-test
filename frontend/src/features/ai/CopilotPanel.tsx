@@ -47,7 +47,7 @@ export function CopilotPanel({ copilot }: { copilot: Copilot }) {
   const changeLabel = (c: Change) => t('change', { k: keyLabel(c.key), a: value(c.from), b: value(c.to) })
 
   return (
-    <aside className="card copilot" aria-label={t('title')}>
+    <aside className="card copilot" aria-label={t('title')} data-tour="copilot">
       <div className="copilot-head">
         <GlowIcon name="sparkle" tone="ai" size={34} breathe />
         {t('title')}

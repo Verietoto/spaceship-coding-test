@@ -32,7 +32,7 @@ export function CompareStrip({ note, current, previous }: Props) {
     setRange(start, end)
   }
   return (
-    <div className="cmp-strip">
+    <div className="cmp-strip" data-tour="compare">
       <span className="cmp-text">
         {view.ai.compare && <span className="ai-pill">{tc('ai_tag')}</span>} {text}
       </span>
