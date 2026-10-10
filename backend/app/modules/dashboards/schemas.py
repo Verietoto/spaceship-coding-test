@@ -3,6 +3,9 @@ from typing import Any, Literal
 from pydantic import BaseModel, Field
 
 
+# Every chart type a widget can have: the one list the schemas, the agents and the cleaner all follow.
+ChartType = Literal["bar", "hbar", "stacked_bar", "area", "line", "combo", "histogram", "pie", "table", "heatmap", "scatter", "funnel", "treemap", "radar", "sankey"]
+MAX_SERIES = 8  # as many series as the chart palette has colors
 MAX_WIDGETS = 24  # a dashboard holds this many widgets at most (each one re-runs its SQL when the dashboard opens)
 
 
@@ -19,9 +22,14 @@ class Widget(BaseModel):
     sql: str = Field(max_length=4000)
     formulas: list[str] = []
     format: Literal["number", "usd", "pct", "days"] | None = None
-    chart_type: Literal["bar", "line", "pie", "table"] | None = None
+    chart_type: ChartType | None = None
     x: str | None = None
-    y: list[str] = Field(default=[], max_length=4)
+    y: list[str] = Field(default=[], max_length=MAX_SERIES)
+    series: str | None = Field(default=None, max_length=60)  # long format: this column's values become the series (x, series, y[0])
+    y_line: list[str] = Field(default=[], max_length=4)  # combo: columns drawn as lines on the right axis
+    size: str | None = Field(default=None, max_length=60)  # scatter: the column that sizes each point (a bubble chart)
+    target: float | None = None  # a reference line on a chart; on a kpi, the goal its value is judged against
+    better: Literal["high", "low"] | None = None  # kpi with a target: is a higher or a lower value better
     highlight: Highlight | None = None  # bar charts with one series only
     span: int | None = Field(default=None, ge=1, le=12)  # columns of 12 the widget takes; None = a KPI a third of a row, a chart a whole row
 

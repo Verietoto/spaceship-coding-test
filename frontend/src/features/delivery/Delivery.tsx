@@ -1,10 +1,10 @@
 // 2. Delivery performance: carrier ranking with a 10% target line, carrier × region heatmap, warehouses by region.
 import { useState } from 'react'
-import type { CSSProperties } from 'react'
 import { useApi } from '../../app/useApi'
 import { useApp } from '../../app/useApp'
 import { CalcTrace } from '../../components/CalcTrace'
 import { GlowIcon } from '../../components/GlowIcon'
+import { Heatmap } from '../../components/Heatmap'
 import { SectionHead } from '../../components/SectionHead'
 import { Seg } from '../../components/Seg'
 import { SmallSample } from '../../components/SmallSample'
@@ -106,33 +106,16 @@ export function Delivery() {
               </div>
             </div>
           </div>
-          <div className="heat-grid" style={{ '--cols': meta.regions.length } as CSSProperties}>
-            <span />
-            {meta.regions.map((r) => <span key={r} className="hdr">{r}</span>)}
-            {meta.carriers.map((c) => [
-              <span key={c} className="rowhdr">{c}</span>,
-              ...meta.regions.map((r) => {
-                const h = heat.get(`${c}|${r}`)
-                if (!h) return <span key={`${c}${r}`} className="heat-cell empty" />
-                const share = Math.min(h.delay / 50, 1)
-                return (
-                  <span
-                    key={`${c}${r}`}
-                    className={`heat-cell ${h.n < 5 ? 'thin' : ''} ${share > 0.55 ? 'dark' : ''}`}
-                    style={{ background: `color-mix(in oklab, var(--heat-lo), var(--heat-hi) ${share * 100}%)` }}
-                    title={t('heat_cell', { c, r, v: fmt.pct1(h.delay), n: h.n })}
-                  >
-                    {fmt.num0(h.delay)}
-                  </span>
-                )
-              }),
-            ])}
-          </div>
-          <div className="legend-row">
-            <span>{fmt.pct0(0)}</span>
-            <span className="heat-scale" />
-            <span>{fmt.pct0(50)}+</span>
-          </div>
+          <Heatmap
+            rows={meta.carriers}
+            cols={meta.regions}
+            lo={fmt.pct0(0)}
+            hi={`${fmt.pct0(50)}+`}
+            cell={(c, r) => {
+              const h = heat.get(`${c}|${r}`)
+              return h && { share: Math.min(h.delay / 50, 1), text: fmt.num0(h.delay), thin: h.n < 5, title: t('heat_cell', { c, r, v: fmt.pct1(h.delay), n: h.n }) }
+            }}
+          />
         </section>
       </div>
 

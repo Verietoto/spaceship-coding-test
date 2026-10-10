@@ -4,15 +4,16 @@ The model never invents numbers: it reads data only through tools that run valid
 answer returns the exact queries it ran so the UI can show "how the AI calculated this".
 """
 from functools import lru_cache
-from typing import Any
+from typing import Any, get_args
 
 from langchain_openai import ChatOpenAI
 from openai import OpenAI
 
 from ...core import aiconfig
 from ...core.errors import require_ai_key
+from ..dashboards.schemas import ChartType
 
-CHART_TYPES = ["bar", "line", "pie", "table"]
+CHART_TYPES = list(get_args(ChartType))
 
 
 def chat_model(name: str | None = None) -> ChatOpenAI:

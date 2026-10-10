@@ -21,6 +21,8 @@ export const builder = defineMessages({
   save_changes: { id: 'Simpan perubahan', en: 'Save changes' },
   discard: { id: 'Buang', en: 'Discard' },
   refine_label: { id: 'Ubah dashboard ini', en: 'Change this dashboard' },
+  kpi_goal_met: { id: 'Target {v} tercapai', en: 'Target {v} met' },
+  kpi_goal_not_met: { id: 'Target {v} belum tercapai', en: 'Target {v} not met' },
   refine_ph: { id: 'mis. ganti pie jadi bar, tambah KPI lead time P90', en: 'e.g. make the pie a bar, add a P90 lead time KPI' },
   refine_send: { id: 'Ubah', en: 'Apply' },
   undo: { id: 'Urungkan perubahan terakhir', en: 'Undo last change' },

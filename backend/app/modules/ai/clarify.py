@@ -31,8 +31,8 @@ CHART_OPTIONS = {
     "en": ["Bar chart (compare)", "Line chart (trend)", "Pie chart (share)", "Table", "Let the AI choose"],
 }
 CHART_FALLBACK = {"id": "Mau divisualkan dengan tipe grafik apa?", "en": "Which chart type should it use?"}
-# A chart type already named by the user (or picked from the options above): bar, line, pie, table and their Indonesian names.
-CHART_WORD = re.compile(r"\b(bar|line|pie|donut|table|tabel|batang|garis|lingkaran|(let the ai|biar ai))\b", re.I)
+# A chart type already named by the user (or picked from the options above): bar, line, pie, table, the other chart types and their Indonesian names.
+CHART_WORD = re.compile(r"\b(bar|line|pie|donut|table|tabel|batang|garis|lingkaran|stacked|bertumpuk|horizontal|area|histogram|combo|gabungan|gauge|heatmap|peta panas|scatter|sebar|funnel|treemap|radar|sankey|(let the ai|biar ai))\b", re.I)
 CLEAR_AT = 0.6  # Jev's confidence that the request is clear enough to build; measured: specific requests score >= 0.72, vague ones <= 0.32
 
 WHAT_WE_CAN_DO = (

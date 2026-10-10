@@ -13,11 +13,10 @@ from ...analytics import filters as af
 from ...analytics import forecast as afc
 from ...analytics import metrics as am
 from ...analytics import sections as asec
-from ...dashboards.schemas import MAX_WIDGETS
+from ...dashboards.schemas import MAX_SERIES, MAX_WIDGETS
 from ...dashboards.service import PLACEHOLDER, clean_filters, default_filters, render_widgets, with_filters
 from ...knowledge import service as knowledge
-from ..llm import CHART_TYPES
-from .widgets import clean_widget
+from .widgets import clean_widget, missing_columns
 
 log = logging.getLogger(__name__)
 
@@ -194,6 +193,9 @@ def _create_dashboard(turn: Turn, args: dict) -> dict:
         "filters": filters,
         "applied": applied.as_dict(),
     }
+    for w in rendered:
+        if not w.get("error") and (why := missing_columns(w, w["rows"])):
+            w["error"] = why  # the same path as a failing SQL: reported back so the agent fixes it
     bad = [{"title": w["title"], "error": w["error"]} for w in rendered if w.get("error")]
     return {"ok": not bad, "widgets": len(rendered), "widgets_with_errors": bad, "hint": "fix the listed widgets and call create_dashboard again" if bad else None}
 
@@ -259,11 +261,16 @@ def _run_tool(turn: Turn, name: str, args: dict) -> dict:
             return {"error": str(e)}
         turn.queries.append({"sql": sql, "formulas": list(args.get("formulas") or [])})
         if name == "make_chart":
-            y = [c for c in (args.get("y") or [])][:4]
+            y = [c for c in (args.get("y") or [])][:MAX_SERIES]
+            chart = clean_widget({"kind": "chart", "title": args.get("title", ""), "sql": sql, "chart_type": args.get("type"), "x": args.get("x"), "y": y,
+                                  "series": args.get("series"), "y_line": args.get("y_line"), "target": args.get("target"), "size": args.get("size")})
+            if why := missing_columns(chart, rows):
+                return {"error": why}
             turn.chart = {
-                "type": args.get("type") if args.get("type") in CHART_TYPES else "bar",
+                "type": chart["chart_type"],
                 "x": args.get("x"),
                 "y": y,
+                **{k: chart[k] for k in ("series", "y_line", "target", "size") if k in chart},
                 "title": args.get("title", ""),
                 "rows": rows,
                 "sql": sql,

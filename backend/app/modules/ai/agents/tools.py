@@ -9,14 +9,14 @@ from typing import Literal
 from langchain_core.tools import BaseTool, tool
 from pydantic import BaseModel, Field
 
-from ...dashboards.schemas import FilterSpec, Highlight
+from ...dashboards.schemas import ChartType, FilterSpec, Highlight
 from .turn import SECTIONS, Turn, run_tool
 
 Compare = Literal["prev", "base", "none"]
 Dim = Literal["region", "warehouse", "carrier", "client", "category", "status", "promo", "origin", "destination", "sku"]
 Group = Literal["region", "warehouse", "carrier", "client", "category", "status", "promo", "origin", "destination"]  # what get_kpis can group by (not SKU: 355 rows)
 Range = Literal["value", "quantity", "lead", "age", "arrived"]
-Metric = Literal["orders", "value", "delivered", "delay", "p90", "over7", "stuck", "exc", "atrisk"]
+Metric = Literal["orders", "value", "delivered", "delay", "ontime", "mean", "p90", "over7", "stuck", "exc", "atrisk"]
 
 
 class WidgetSpec(BaseModel):
@@ -25,9 +25,14 @@ class WidgetSpec(BaseModel):
     sql: str  # read-only SELECT; a kpi returns exactly one row with one numeric column
     formulas: list[str] = Field(description="The math behind each number, as a definition WITHOUT numbers (the data is recomputed on every open), e.g. 'delay rate = delayed orders ÷ all orders'. Math, never SQL.")
     format: Literal["number", "usd", "pct", "days"] | None = None  # kpi value format
-    chart_type: Literal["bar", "line", "pie", "table"] | None = None
+    chart_type: ChartType | None = None
     x: str | None = None
-    y: list[str] | None = None
+    y: list[str] | None = Field(default=None, description="Numeric columns to plot (at most 8). With `series`, just one: the value column.")
+    series: str | None = Field(default=None, description="Long format: the column whose values become the series (SQL returns x, series, y rather than one column per series). Use it for more than 4 series or when the series are data values such as regions.")
+    y_line: list[str] | None = Field(default=None, description="combo only: numeric columns drawn as lines on the right axis (y are the bars).")
+    size: str | None = Field(default=None, description="scatter only: numeric column that sizes each point (a bubble chart).")
+    target: float | None = Field(default=None, description="A goal. On a chart: a dashed reference line at this value (y axis; the x axis for hbar). On a kpi: the value is judged against it (progress bar, green when met).")
+    better: Literal["high", "low"] | None = Field(default=None, description="kpi with a target: is a higher (high, default) or a lower (low, e.g. delay rate) value better.")
     span: int | None = Field(default=None, description="Layout, only when the user asks for one: how many of the 12 columns of a row the widget takes. 12 = a whole row, 6 = half, 4 = a third (three side by side), 3 = a quarter. Widgets fill rows left to right in the order you list them, so side-by-side widgets must be listed one after the other. Charts need at least 4. Omit it otherwise (a KPI then takes 4, a chart 12).")
     highlight: Highlight | None = Field(default=None, description="Only when the user asks to mark the best or worst bars ('top 3', 'worst 2'): the n bars with the highest (top) or lowest (bottom) value get a different color. Bar charts with ONE y column only. Omit otherwise.")
 
@@ -137,7 +142,7 @@ def make_tools(turn: Turn) -> dict[str, BaseTool]:
     def get_kpis(by: Group | None = None, metrics: list[Metric] | None = None) -> str:
         """Standard KPIs for the active filters, computed exactly as the dashboard does (no SQL needed).
 
-        Result keys: n orders, val order value USD, aov, deliv delivered %, delay delay %, delay_n delayed orders, lead_n
+        Result keys: n orders, val order value USD, aov, deliv delivered %, delay delay %, ontime on-time % (delivered ÷ delivered+delayed), delay_n delayed orders, lead_n
         orders with an arrival date, mean/p50/p90 lead days, over7 % of arrived orders over 7 days, stuck, exc exception
         orders, open open problem orders, prob_n/prob_val problem orders and their value (value at risk), deliv_n delivered orders,
         over7_n arrived orders over 7 days.
@@ -164,18 +169,22 @@ def make_tools(turn: Turn) -> dict[str, BaseTool]:
         return call("run_sql", sql=sql, formulas=formulas)
 
     @tool(parse_docstring=True)
-    def make_chart(sql: str, formulas: list[str], type: Literal["bar", "line", "pie", "table"], x: str, y: list[str], title: str) -> str:
+    def make_chart(sql: str, formulas: list[str], type: ChartType, x: str, y: list[str], title: str, series: str | None = None, y_line: list[str] | None = None, target: float | None = None, size: str | None = None) -> str:
         """Run a read-only SELECT and show its result to the user as a chart.
 
         Args:
             sql: A single SELECT statement.
             formulas: The math behind the charted values as a definition (numbers only if you already saw them in an earlier query), e.g. "delay rate = delayed orders ÷ all orders". Math, never SQL. At most 2 short lines, in the user's language, no repeats.
-            type: bar, line, pie or table.
+            type: bar, hbar (horizontal bars: rankings, long labels), stacked_bar, area, line, combo (y as bars plus y_line as lines on the right axis), histogram (x = bin label, y = count), pie, table, heatmap (two dimensions: x = rows, series = columns, y = [value]), scatter (x and y numeric; series colors the points, size makes bubbles), funnel (ordered stages), treemap (parts of a whole, many items), radar (x = axes, y = measures) or sankey (flows: x = from, series = to, y = [amount]).
             x: Column for categories / the x axis.
-            y: Numeric column(s) to plot, at most 4.
+            y: Numeric column(s) to plot, at most 8. With `series`, only the value column.
             title: Chart title.
+            series: Long format: the column whose values become the series (SQL returns x, series, y). Use it for more than 4 series or when the series are values such as regions.
+            y_line: combo only: numeric columns drawn as lines on the right axis.
+            target: A goal drawn as a dashed reference line.
+            size: scatter only: numeric column that sizes each point.
         """
-        return call("make_chart", sql=sql, formulas=formulas, type=type, x=x, y=y, title=title)
+        return call("make_chart", sql=sql, formulas=formulas, type=type, x=x, y=y, title=title, series=series, y_line=y_line, target=target, size=size)
 
     @tool(parse_docstring=True)
     def create_dashboard(title: str, plan: list[str], widgets: list[WidgetSpec], filters: list[FilterSpec] | None = None) -> str:

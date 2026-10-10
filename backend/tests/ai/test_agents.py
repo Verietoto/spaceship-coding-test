@@ -300,3 +300,123 @@ def test_the_builder_is_told_the_limit_and_not_to_drop_silently() -> None:
     from app.modules.ai.agents import builder as b
 
     assert f"at most {MAX_WIDGETS} widgets" in b.prompt(Ctx(af.Filters(), "prev", "en"))
+
+
+# ---------- more chart types
+
+def test_every_chart_type_is_kept_and_an_unknown_one_becomes_a_bar() -> None:
+    from app.modules.ai.agents.widgets import clean_widget
+    from app.modules.ai.llm import CHART_TYPES
+
+    assert {"bar", "hbar", "stacked_bar", "area", "line", "combo", "histogram", "pie", "table", "heatmap", "scatter", "funnel", "treemap", "radar", "sankey"} == set(CHART_TYPES)
+    for kind in CHART_TYPES:
+        assert clean_widget({"kind": "chart", "title": "w", "sql": "SELECT 1", "chart_type": kind})["chart_type"] == kind
+    assert clean_widget({"kind": "chart", "title": "w", "sql": "SELECT 1", "chart_type": "spiral"})["chart_type"] == "bar"
+
+
+def test_series_lines_and_target_survive_cleaning_and_junk_does_not() -> None:
+    from app.modules.ai.agents.widgets import clean_widget
+
+    w = {"kind": "chart", "title": "w", "sql": "SELECT 1", "chart_type": "combo", "x": "m", "y": [f"c{i}" for i in range(12)], "y_line": ["a", "b", "c", "d", "e"], "series": "region", "target": 10}
+    out = clean_widget(w)
+    assert len(out["y"]) == 8 and out["y_line"] == ["a", "b", "c", "d"] and out["series"] == "region" and out["target"] == 10.0
+    for bad in ["10", True, float("nan"), float("inf"), None]:
+        assert "target" not in clean_widget({**w, "target": bad})
+
+
+def test_a_kpi_target_comes_with_which_direction_is_better() -> None:
+    from app.modules.ai.agents.widgets import clean_widget
+
+    k = {"kind": "kpi", "title": "k", "sql": "SELECT 1", "target": 10}
+    assert clean_widget(k)["better"] == "high" and clean_widget({**k, "better": "low"})["better"] == "low" and clean_widget({**k, "better": "x"})["better"] == "high"
+    assert "target" not in clean_widget({**k, "target": "10"}) and "better" not in clean_widget({**k, "target": "10"})
+
+
+def test_columns_the_chart_names_must_be_in_the_result_and_numeric() -> None:
+    from app.modules.ai.agents.widgets import missing_columns
+
+    rows = [{"carrier": "UPS", "region": "UK", "delay": 12.5}, {"carrier": "DHL", "region": "EU", "delay": None}]
+    ok = {"kind": "chart", "chart_type": "stacked_bar", "x": "carrier", "series": "region", "y": ["delay"]}
+    assert missing_columns(ok, rows) is None
+    assert "region_name" in (missing_columns({**ok, "series": "region_name"}, rows) or "")
+    assert "must be numeric" in (missing_columns({**ok, "y": ["region"]}, rows) or "")
+    assert missing_columns({**ok, "y": []}, rows) is not None  # nothing to plot
+    assert missing_columns({**ok, "chart_type": "table", "y": []}, rows) is None  # a table shows whatever came back
+    assert missing_columns(ok, []) is None  # an empty result is not a column problem
+    assert missing_columns({"kind": "kpi"}, rows) is None
+
+
+def test_the_saved_widget_schema_accepts_the_new_fields() -> None:
+    from app.modules.dashboards.schemas import Widget
+
+    w = Widget(kind="chart", title="t", sql="SELECT 1", chart_type="hbar", x="a", y=["b"], series="c", y_line=["d"], target=5)
+    assert w.chart_type == "hbar" and w.series == "c" and w.target == 5
+    with pytest.raises(ValueError):
+        Widget(kind="chart", title="t", sql="SELECT 1", chart_type="spiral")
+
+
+def test_create_dashboard_reports_a_chart_whose_columns_do_not_match_the_sql() -> None:
+    t = turn()
+    bad = {**CHART, "chart_type": "stacked_bar", "series": "region"}  # the SQL returns carrier and n only
+    out = json.loads(make_tools(t)["create_dashboard"].invoke({"title": "T", "plan": ["a"], "widgets": [bad]}))
+    assert out["ok"] is False and "region" in out["widgets_with_errors"][0]["error"]
+
+
+def test_create_dashboard_keeps_a_long_format_chart_that_matches() -> None:
+    t = turn()
+    sql = "SELECT carrier, region, count(*) AS n FROM orders GROUP BY 1, 2"
+    good = {**CHART, "sql": sql, "chart_type": "stacked_bar", "series": "region", "y": ["n"], "target": 5}
+    out = json.loads(make_tools(t)["create_dashboard"].invoke({"title": "T", "plan": ["a"], "widgets": [good]}))
+    assert out["ok"] is True
+    w = t.dashboard["widgets"][0]
+    assert (w["chart_type"], w["series"], w["target"]) == ("stacked_bar", "region", 5.0)
+
+
+def test_make_chart_refuses_columns_that_are_not_in_the_result_and_keeps_the_new_fields_otherwise() -> None:
+    t = turn()
+    sql = "SELECT carrier, region, count(*) AS n FROM orders GROUP BY 1, 2"
+    tools = make_tools(t)
+    bad = json.loads(tools["make_chart"].invoke({"sql": sql, "formulas": [], "type": "bar", "x": "carrier", "y": ["orders"], "title": "t"}))
+    assert "error" in bad and t.chart is None
+    json.loads(tools["make_chart"].invoke({"sql": sql, "formulas": [], "type": "stacked_bar", "x": "carrier", "y": ["n"], "series": "region", "target": 3, "title": "t"}))
+    assert t.chart["type"] == "stacked_bar" and t.chart["series"] == "region" and t.chart["target"] == 3.0
+
+
+def test_builder_and_charter_prompts_teach_the_new_chart_types() -> None:
+    from app.modules.ai.agents import builder as b
+    from app.modules.ai.agents import charter as c
+
+    text = b.prompt(Ctx(af.Filters(), "prev", "en"))
+    for word in ("hbar", "stacked_bar", "combo", "histogram", "series", "y_line", "target"):
+        assert word in text, word
+    assert "stacked bar" in c.DESCRIPTION and "stacked_bar" in c.prompt(Ctx(af.Filters(), "prev", "en")) and "series" in c.prompt(Ctx(af.Filters(), "prev", "en"))
+
+
+def test_heatmap_and_sankey_need_a_series_column_and_scatter_numeric_axes() -> None:
+    from app.modules.ai.agents.widgets import missing_columns
+
+    rows = [{"carrier": "UPS", "region": "UK", "delay": 12.5, "value": 100, "age": 3}]
+    heat = {"kind": "chart", "chart_type": "heatmap", "x": "carrier", "series": "region", "y": ["delay"]}
+    assert missing_columns(heat, rows) is None
+    assert "needs `series`" in (missing_columns({**heat, "series": None}, rows) or "")
+    assert "needs `series`" in (missing_columns({**heat, "chart_type": "sankey", "series": None}, rows) or "")
+    scatter = {"kind": "chart", "chart_type": "scatter", "x": "value", "y": ["age"], "size": "delay"}
+    assert missing_columns(scatter, rows) is None
+    assert "must be numeric" in (missing_columns({**scatter, "x": "carrier"}, rows) or "")  # a scatter's x is a number
+    assert "must be numeric" in (missing_columns({**scatter, "size": "region"}, rows) or "")
+    assert "size_col" in (missing_columns({**scatter, "size": "size_col"}, rows) or "")
+
+
+def test_the_size_of_a_bubble_survives_cleaning() -> None:
+    from app.modules.ai.agents.widgets import clean_widget
+
+    w = {"kind": "chart", "title": "w", "sql": "SELECT 1", "chart_type": "scatter", "x": "a", "y": ["b"], "size": "c"}
+    assert clean_widget(w)["size"] == "c" and "size" not in clean_widget({**w, "size": ""})
+
+
+def test_prompts_teach_heatmap_scatter_and_sankey() -> None:
+    from app.modules.ai.agents import builder as b
+
+    text = b.prompt(Ctx(af.Filters(), "prev", "en"))
+    for word in ("heatmap", "scatter", "treemap", "funnel", "radar", "sankey", "size"):
+        assert word in text, word
