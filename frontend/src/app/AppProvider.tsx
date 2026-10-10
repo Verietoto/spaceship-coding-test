@@ -22,7 +22,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [view, setView] = useState<View>(initialView)
   const [history, setHistory] = useState<View[]>([])
   const [section, setSection] = useState<Section>('overview')
-  const [lang, setLangState] = useState<Lang>(() => stored<Lang>('lang', 'id'))
+  const [lang, setLangState] = useState<Lang>(() => stored<Lang>('lang', 'en')) // English until the user picks a language (it is then remembered)
   const { theme, toggleTheme } = useTheme()
   const [user, setUser] = useState<string | null>(() => stored<string>('user', '') || null)
   const [meta, setMeta] = useState<Meta | null>(null)
