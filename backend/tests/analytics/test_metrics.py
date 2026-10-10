@@ -56,7 +56,7 @@ def test_terms_carry_the_numbers_behind_every_metric() -> None:
     assert list(t) == am.ALL_METRICS
     assert t["orders"] == {"n": 400} and t["delay"] == {"num": s["delay_n"], "den": 400, "value": s["delay"]}
     # the math adds up: the numerator over the denominator is the rate the page shows
-    for key in ("delivered", "delay", "over7"):
+    for key in ("delivered", "delay", "ontime", "over7"):
         assert abs(t[key]["num"] / t[key]["den"] * 100 - t[key]["value"]) < 1e-9, key
     assert t["p90"]["n"] == s["lead_n"] and t["atrisk"]["n"] == s["prob_n"] and t["atrisk"]["sum"] == s["prob_val"]
 
@@ -71,3 +71,9 @@ def test_calc_has_terms_for_exactly_the_requested_metrics() -> None:
     c = am.calc(ALL, ["orders", "delay"])
     assert list(c["terms"]) == ["orders", "delay"] and c["rows"] == c["terms"]["orders"]["n"] and "sql" in c  # the SQL stays for audit
 
+
+
+def test_ontime_is_delivered_over_delivered_plus_delayed_and_null_without_either() -> None:
+    s = am.stats(ALL)
+    assert abs(s["ontime"] - 100 * s["deliv_n"] / (s["deliv_n"] + s["delay_n"])) < 1e-9
+    assert am.stats(af.build_filters({"status": ["canceled"]}))["ontime"] is None

@@ -6,6 +6,7 @@ Definitions (same as the prototype):
 - problem = delayed + exception + stuck  (its value = "nilai terdampak")
 """
 from dataclasses import replace
+from datetime import date
 
 from ...db.engine import query
 from .filters import Filters, prev_range, total_orders, where, without_dims
@@ -22,6 +23,7 @@ STATS = f"""count(*) AS n,
        count(*) FILTER (WHERE status = 'delivered') AS deliv_n,
        count(*) FILTER (WHERE status = 'delayed') AS delay_n,
        avg(CASE WHEN status = 'delayed' THEN 100.0 ELSE 0 END) AS delay,
+       100.0 * count(*) FILTER (WHERE status = 'delivered') / nullif(count(*) FILTER (WHERE status IN ('delivered', 'delayed')), 0) AS ontime,
        count(lead_days) AS lead_n,
        count(*) FILTER (WHERE lead_days > 7) AS over7_n,
        avg(lead_days) AS mean,
@@ -41,6 +43,8 @@ METRIC_SQL = {
     "value": "SUM(order_value_usd) AS order_value",
     "delivered": "AVG(CASE WHEN status = 'delivered' THEN 1.0 ELSE 0 END) AS delivered_rate",
     "delay": "AVG(CASE WHEN status = 'delayed' THEN 1.0 ELSE 0 END) AS delay_rate",
+    "ontime": "100.0 * COUNT(*) FILTER (WHERE status = 'delivered') / NULLIF(COUNT(*) FILTER (WHERE status IN ('delivered', 'delayed')), 0) AS on_time_rate",
+    "mean": "AVG(lead_days) AS lead_mean",
     "p90": "PERCENTILE_CONT(0.9) WITHIN GROUP (ORDER BY lead_days) AS lead_p90",
     "over7": "AVG(CASE WHEN lead_days > 7 THEN 1.0 ELSE 0 END) FILTER (WHERE lead_days IS NOT NULL) AS share_over_7d",
     "stuck": f"COUNT(*) FILTER (WHERE {STUCK}) AS stuck_orders",
@@ -49,7 +53,7 @@ METRIC_SQL = {
 }
 
 
-ALL_METRICS = ["orders", "value", "delivered", "delay", "p90", "over7", "stuck", "exc", "atrisk"]
+ALL_METRICS = ["orders", "value", "delivered", "delay", "ontime", "mean", "p90", "over7", "stuck", "exc", "atrisk"]
 
 
 def terms(st: dict, metrics: list[str]) -> dict[str, dict]:
@@ -59,6 +63,8 @@ def terms(st: dict, metrics: list[str]) -> dict[str, dict]:
         "value": {"sum": st["val"], "n": st["n"], "aov": st["aov"]},
         "delivered": {"num": st["deliv_n"], "den": st["n"], "value": st["deliv"]},
         "delay": {"num": st["delay_n"], "den": st["n"], "value": st["delay"]},
+        "ontime": {"num": st["deliv_n"], "den": st["deliv_n"] + st["delay_n"], "value": st["ontime"]},
+        "mean": {"value": st["mean"], "n": st["lead_n"], "median": st["p50"], "p90": st["p90"]},
         "p90": {"value": st["p90"], "n": st["lead_n"], "median": st["p50"], "mean": st["mean"]},
         "over7": {"num": st["over7_n"], "den": st["lead_n"], "value": st["over7"]},
         "stuck": {"n": st["stuck"]},
@@ -92,7 +98,13 @@ def calc(f: Filters, metrics: list[str]) -> dict:
     return {"filters": f.as_dict(), "rows": st["n"], "total": total_orders(), "metrics": metrics, "terms": terms(st, metrics), "sql": sql, "result": result}
 
 
-def comparison(f: Filters, mode: str) -> dict:
+def comparison(f: Filters, mode: str, cmp_range: tuple[date | None, date | None] = (None, None)) -> dict:
+    if mode == "custom":
+        # Any other period, same filters. An incomplete or reversed range counts as "not chosen yet".
+        lo, hi = cmp_range
+        if lo is None or hi is None or lo > hi:
+            return {"mode": mode, "range": None, "stats": None}
+        return {"mode": mode, "range": {"start": lo.isoformat(), "end": hi.isoformat()}, "stats": stats(replace(f, start=lo, end=hi))}
     if mode == "prev" and not prev_range(f) and f.has_dims():
         # Nothing before the selected period (or no period selected): compare with all data instead of showing nothing.
         return {"mode": "base", "stats": stats(without_dims(f))}

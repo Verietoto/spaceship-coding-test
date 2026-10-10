@@ -61,6 +61,7 @@ export const common = defineMessages({
   f_arrived: { id: 'Tanggal tiba', en: 'Arrival date' },
   f_compare: { id: 'Pembanding', en: 'Compare to' },
   cmp_prev: { id: 'Periode sebelumnya', en: 'Previous period' },
+  cmp_custom: { id: 'Periode lain', en: 'Another period' },
   cmp_base: { id: 'Semua data', en: 'All data' },
   cmp_none: { id: 'Tanpa pembanding', en: 'No comparison' },
 

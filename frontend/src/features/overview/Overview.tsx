@@ -16,10 +16,13 @@ import { common } from '../../i18n/common'
 import { useFormat } from '../../i18n/format'
 import { overview } from '../../i18n/overview'
 import { fq } from '../../lib/api'
+import { compareNote } from '../../lib/compareNote'
 import { niceAxis } from '../../lib/scale'
 import { delta } from '../../lib/delta'
 import { buckets } from '../../lib/period'
 import type { Calc, Stats } from '../../lib/types'
+
+import { CompareStrip } from './CompareStrip'
 
 type OverviewData = {
   stats: Stats
@@ -39,23 +42,18 @@ export function Overview() {
   const { f, compare } = view
   const [gran, setGran] = useState<'month' | 'quarter'>('month')
   const [histMode, setHistMode] = useState<'pct' | 'count'>('pct')
-  const { data, error, isLoading } = useApi<OverviewData>('overview', { ...fq(f), compare, gran })
+  const { data, error, isLoading } = useApi<OverviewData>('overview', { ...fq(f), compare, ...(compare === 'custom' && view.cmpRange ? { compare_start: view.cmpRange.start, compare_end: view.cmpRange.end } : {}), gran })
 
   if (!data) return <Status isLoading={isLoading} error={error} />
   const s = data.stats
   const b = data.compare.stats
-  const cmpLabel =
-    compare === 'none'
-      ? ''
-      : data.compare.mode === 'base'
-        ? b
-          ? t('vs_all')
-          : t('no_cmp_base')
-        : data.compare.range
-          ? t('vs', { v: fmt.range(data.compare.range.start, data.compare.range.end) })
-          : f.start || f.end
-            ? t('no_data_before')
-            : t('no_cmp_prev')
+  const note = compareNote(compare, data.compare, Boolean(f.start || f.end))
+  const cr = data.compare.range
+  const was = (v: string) => {
+    if (!b) return undefined
+    if (data.compare.mode === 'custom' && cr) return t('was_custom', { p: fmt.range(cr.start, cr.end), v })
+    return t(data.compare.mode === 'base' ? 'was_all' : 'was_prev', { v })
+  }
 
   const isMonth = gran === 'month'
   const bks = buckets(data.window, gran)
@@ -72,6 +70,7 @@ export function Overview() {
       sub: t('n', { n: row?.n ?? 0 }),
       dim: !((!f.start || b.end >= f.start) && (!f.end || b.start <= f.end)), // outside the selected range
       marker: baseBy.get(b.key) ?? null,
+      markerText: baseBy.get(b.key) != null ? t('tip_base', { v: fmt.pct0(baseBy.get(b.key)!) }) : undefined,
     }
   })
   const trendAxis = niceAxis([...trend.map((d) => d.value), ...trend.map((d) => d.marker)], 10)
@@ -96,32 +95,47 @@ export function Overview() {
         <p className="note">{tc('no_data')}</p>
       ) : (
         <>
+          <CompareStrip
+            note={note}
+            current={[f.start, f.end]}
+            previous={data.compare.range ? [data.compare.range.start, data.compare.range.end] : null}
+          />
           <div className="kpi-grid">
-            <KpiCard icon="box" tone="t1" label={t('k_orders')} value={fmt.int(s.n)} delta={delta(s.n, b?.n ?? null, 'rel')} cmpLabel={cmpLabel} sub={t('s_orders')} hint={t('h_orders')} />
-            <KpiCard icon="dollar" tone="t2" label={t('k_value')} value={fmt.usd(s.val)} delta={delta(s.val, b?.val ?? null, 'rel')} cmpLabel={cmpLabel} sub={t('s_value', { v: fmt.usd2(s.aov) })} hint={t('h_value')} />
-            <KpiCard icon="truck" tone="t3" label={t('k_deliv')} value={fmt.pct0(s.deliv)} delta={delta(s.deliv, b?.deliv ?? null, 'pt', 'down')} cmpLabel={cmpLabel} sub={t('s_deliv')} hint={t('h_deliv')} />
+            <KpiCard icon="box" tone="t1" label={t('k_orders')} value={fmt.int(s.n)} delta={delta(s.n, b?.n ?? null, 'rel')} cmp={was(fmt.int(b?.n))} sub={t('s_orders')} hint={t('h_orders')} />
+            <KpiCard icon="truck" tone="t3" label={t('k_deliv')} value={fmt.int(s.deliv_n)} delta={delta(s.deliv_n, b?.deliv_n ?? null, 'rel')} cmp={was(fmt.int(b?.deliv_n))} sub={t('s_deliv', { p: fmt.pct1(s.deliv) })} hint={t('h_deliv')} />
             <KpiCard
               icon="clock"
               tone="t4"
               label={t('k_delay')}
-              value={fmt.pct1(s.delay)}
+              value={fmt.int(s.delay_n)}
               isBad={s.delay != null && s.delay > 10}
-              delta={delta(s.delay, b?.delay ?? null, 'pt', 'up')}
-              cmpLabel={cmpLabel}
-              sub={t('s_delay')}
+              delta={delta(s.delay_n, b?.delay_n ?? null, 'rel', 'up')}
+              cmp={was(fmt.int(b?.delay_n))}
+              sub={t('s_delay', { p: fmt.pct1(s.delay) })}
               hint={t('h_delay')}
             />
+            <KpiCard icon="award" tone="t5" label={t('k_ontime')} value={fmt.pct1(s.ontime)} delta={delta(s.ontime, b?.ontime ?? null, 'pt', 'down')} cmp={was(fmt.pct1(b?.ontime))} sub={t('s_ontime')} hint={t('h_ontime')} />
             <KpiCard
-              icon="award"
-              tone="t5"
-              label={t('k_p90')}
-              value={fmt.days(s.p90)}
-              delta={delta(s.p90, b?.p90 ?? null, 'd', 'up')}
-              cmpLabel={cmpLabel}
-              sub={t('s_p90', { a: fmt.days(s.p50), b: fmt.days(s.mean) })}
-              hint={t('h_p90')}
+              icon="timer"
+              tone="t6"
+              label={t('k_avg')}
+              value={fmt.days(s.mean)}
+              delta={delta(s.mean, b?.mean ?? null, 'd', 'up')}
+              cmp={was(fmt.days(b?.mean))}
+              sub={t('s_avg', { a: fmt.days(s.p50), b: fmt.days(s.p90) })}
+              hint={t('h_avg')}
             />
-            <KpiCard icon="timer" tone="t6" label={t('k_over7')} value={fmt.pct1(s.over7)} delta={delta(s.over7, b?.over7 ?? null, 'pt', 'up')} cmpLabel={cmpLabel} sub={t('s_over7')} hint={t('h_over7')} />
+            <KpiCard
+              icon="dollar"
+              tone="t2"
+              label={t('k_risk')}
+              value={fmt.usd(s.prob_val)}
+              isBad={s.prob_val > 0}
+              delta={delta(s.prob_val, b?.prob_val ?? null, 'rel', 'up')}
+              cmp={was(fmt.usd(b?.prob_val))}
+              sub={t('s_risk', { n: fmt.int(s.prob_n) })}
+              hint={t('h_risk')}
+            />
           </div>
           <CalcTrace calc={data.calc} />
 

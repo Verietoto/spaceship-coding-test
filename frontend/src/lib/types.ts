@@ -21,7 +21,11 @@ export type Filters = {
 export type AIKey = Dimension | RangeKey | 'period' | 'arrived' | 'compare'
 /** A filter a saved dashboard offers, chosen by the agent that built it, with what it starts on. */
 export type DashFilter = { key: 'period' | 'arrived' | Dimension | RangeKey; default?: string[]; start?: string; end?: string; min?: number; max?: number }
-export type Compare = 'prev' | 'base' | 'none'
+export type Compare = 'prev' | 'base' | 'none' | 'custom'
+/** The other period of a "compare with another period" view. */
+export type DateRange = { start: string; end: string }
+/** What the saved presets and the copilot API accept: they know nothing of a free comparison period. */
+export const savedCompare = (c: Compare): Exclude<Compare, 'custom'> => (c === 'custom' ? 'prev' : c)
 export type Section = 'overview' | 'delivery' | 'clients' | 'risk' | 'forecast' | 'quality' | 'reports' | 'knowledge' | 'backoffice' | 'build' | 'saved'
 export type DashboardSection = Exclude<Section, 'build' | 'saved' | 'backoffice'>
 export type Meta = {
@@ -54,7 +58,7 @@ export type Calc = {
 }
 
 /** What the view is filtered by, plus which of those values the AI set (shown as an "AI" tag). */
-export type View = { f: Filters; compare: Compare; ai: Partial<Record<AIKey, boolean>> }
+export type View = { f: Filters; compare: Compare; cmpRange: DateRange | null; ai: Partial<Record<AIKey, boolean>> }
 
 export const DEFAULT_FILTERS: Filters = {
   start: null, end: null, arrived_start: null, arrived_end: null, ranges: {}, exclude: [],
@@ -67,8 +71,10 @@ export type Stats = {
   val: number
   aov: number | null
   deliv: number | null
+  deliv_n: number
   delay_n: number
   delay: number | null
+  ontime: number | null
   lead_n: number
   mean: number | null
   p50: number | null
@@ -85,4 +91,24 @@ export type Keyed = Stats & { key: string }
 
 /** Mark the n highest (top) or lowest (bottom) bars of a one-series bar chart. */
 export type Highlight = { mode: 'top' | 'bottom'; n: number }
-export type ChartSpec = { type: 'bar' | 'line' | 'pie' | 'table'; x: string; y: string[]; title: string; rows: Record<string, unknown>[]; sql: string; highlight?: Highlight }
+/** Every chart type the agents can draw (mirrors the backend's `ChartType`). */
+export type ChartType =
+  | 'bar' | 'hbar' | 'stacked_bar' | 'area' | 'line' | 'combo' | 'histogram' | 'pie' | 'table'
+  | 'heatmap' | 'scatter' | 'funnel' | 'treemap' | 'radar' | 'sankey'
+export type ChartSpec = {
+  type: ChartType
+  x: string
+  y: string[]
+  /** Long format: this column's values become the series (rows are x, series, y[0]). */
+  series?: string
+  /** combo: the columns drawn as lines on the right axis (y are the bars). */
+  y_line?: string[]
+  /** scatter: the column that sizes each point (a bubble chart). */
+  size?: string
+  /** A dashed goal line. */
+  target?: number
+  title: string
+  rows: Record<string, unknown>[]
+  sql: string
+  highlight?: Highlight
+}

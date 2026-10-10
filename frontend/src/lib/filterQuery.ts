@@ -1,6 +1,6 @@
 // Filters <-> query string (API calls and the shareable page URL) and small helpers on a Filters value.
 import { DEFAULT_FILTERS, DIMENSIONS, RANGE_KEYS } from './types'
-import type { Bounds, Compare, Dimension, Filters, RangeKey } from './types'
+import type { Bounds, Compare, DateRange, Dimension, Filters, RangeKey } from './types'
 
 type Params = Record<string, string | string[]>
 
@@ -23,17 +23,21 @@ export function toParams(f: Filters): Params {
 }
 
 /** The page URL for a view: filters plus a comparison that is not the default. */
-export function toSearch(f: Filters, compare: Compare): string {
+export function toSearch(f: Filters, compare: Compare, cmpRange: DateRange | null = null): string {
   const qs = new URLSearchParams()
   for (const [k, v] of Object.entries(toParams(f))) for (const x of Array.isArray(v) ? v : [v]) qs.append(k, x)
   if (compare !== 'prev') qs.set('compare', compare)
+  if (compare === 'custom' && cmpRange) {
+    qs.set('cmp_start', cmpRange.start)
+    qs.set('cmp_end', cmpRange.end)
+  }
   const s = qs.toString()
   return s ? `?${s}` : ''
 }
 
 const ISO = /^\d{4}-\d{2}-\d{2}$/
 
-export function fromSearch(search: string): { f: Filters; compare: Compare } {
+export function fromSearch(search: string): { f: Filters; compare: Compare; cmpRange: DateRange | null } {
   const qs = new URLSearchParams(search)
   const date = (k: string) => (ISO.test(qs.get(k) ?? '') ? qs.get(k) : null)
   const number = (k: string) => {
@@ -48,7 +52,9 @@ export function fromSearch(search: string): { f: Filters; compare: Compare } {
   for (const d of DIMENSIONS) f[d] = qs.getAll(d).filter(Boolean)
   f.exclude = qs.getAll('exclude').filter((d): d is Dimension => (DIMENSIONS as readonly string[]).includes(d) && f[d as Dimension].length > 0)
   const c = qs.get('compare')
-  return { f, compare: c === 'base' || c === 'none' ? c : 'prev' }
+  const [cs, ce] = [date('cmp_start'), date('cmp_end')]
+  const compare: Compare = c === 'base' || c === 'none' || c === 'custom' ? c : 'prev'
+  return { f, compare, cmpRange: compare === 'custom' && cs && ce && cs <= ce ? { start: cs, end: ce } : null }
 }
 
 export function isDefault(f: Filters): boolean {

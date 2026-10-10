@@ -1,7 +1,6 @@
-// The global filter bar (a card): period, region, warehouse, carrier, client (+ comparison on Overview), then
+// The global filter bar (a card): period, region, warehouse, carrier, client, then
 // reset / presets / copy link / export PDF, the active filters as removable chips, and the order count.
 import { useState } from 'react'
-import type { ReactNode } from 'react'
 import { useApi } from '../app/useApi'
 import { useApp } from '../app/useApp'
 import { useMessages } from '../i18n'
@@ -11,31 +10,14 @@ import { useFormat } from '../i18n/format'
 import { fq } from '../lib/api'
 import { extraCount, isDefault } from '../lib/filterQuery'
 import { DIMENSIONS, RANGE_KEYS } from '../lib/types'
-import type { Compare, Facets } from '../lib/types'
+import type { Facets } from '../lib/types'
 import { CORE, FilterField, MORE } from './FilterField'
 import { Icon } from './Icon'
 import { PeriodPicker } from './PeriodPicker'
 import { PresetsMenu } from './PresetsMenu'
 import { useRangeText, useValueLabel } from './useValueLabel'
 
-function CompareSelect({ children }: { children: ReactNode }) {
-  const { view, setCompare } = useApp()
-  const tc = useMessages(common)
-  return (
-    <label className="filter">
-      <span className="filter-label">
-        <Icon name="bars" size={14} />
-        {tc('f_compare')}
-        {view.ai.compare && <span className="ai-pill">{tc('ai_tag')}</span>}
-      </span>
-      <select value={view.compare} className={`sel${view.ai.compare ? ' is-ai' : ''}`} onChange={(e) => setCompare(e.target.value as Compare)}>
-        {children}
-      </select>
-    </label>
-  )
-}
-
-export function FilterBar({ showCompare = false }: { showCompare?: boolean }) {
+export function FilterBar() {
   const { view, meta, setDim, setRange, setBounds, setArrived, reset } = useApp()
   const t = useMessages(filtersMsg)
   const tc = useMessages(common)
@@ -83,13 +65,6 @@ export function FilterBar({ showCompare = false }: { showCompare?: boolean }) {
         {CORE.map((d) => (
           <FilterField key={d} field={d} f={f} facets={data} ai={ai} on={on} />
         ))}
-        {showCompare && (
-          <CompareSelect>
-            <option value="prev">{tc('cmp_prev')}</option>
-            <option value="base">{tc('cmp_base')}</option>
-            <option value="none">{tc('cmp_none')}</option>
-          </CompareSelect>
-        )}
         <div className="filter-buttons">
           <button type="button" className="btn ghost" aria-expanded={isMoreOpen} onClick={() => setMoreOpen(!isMoreOpen)}>
             <Icon name="plus" size={16} /> {extra ? t('more_filters_n', { n: extra }) : t('more_filters')}

@@ -91,6 +91,15 @@ def test_previous_period(start: str | None, end: str | None, expected: tuple[str
     assert (got and (got[0].isoformat(), got[1].isoformat())) == expected
 
 
+def test_comparison_with_any_other_period_keeps_the_filters() -> None:
+    q1_ups = af.build_filters({"period": "Q1", "carrier": "UPS"})
+    got = am.comparison(q1_ups, "custom", (date(2025, 7, 1), date(2025, 9, 30)))
+    assert got["range"] == {"start": "2025-07-01", "end": "2025-09-30"}
+    assert got["stats"]["n"] == am.stats(af.build_filters({"period": "Q3", "carrier": "UPS"}))["n"]
+    for bad in [(None, None), (date(2025, 7, 1), None), (date(2025, 9, 30), date(2025, 7, 1))]:
+        assert am.comparison(q1_ups, "custom", bad) == {"mode": "custom", "range": None, "stats": None}
+
+
 def test_comparison_uses_previous_period() -> None:
     f = af.build_filters({"period": "Q4"})
     cmp = am.comparison(f, "prev")

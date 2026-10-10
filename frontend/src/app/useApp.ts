@@ -1,7 +1,7 @@
 // App-wide state: filters (+ which ones the AI set, undo), section, language, theme, session, saved dashboards.
 import { createContext, useContext } from 'react'
 import type { Lang } from '../i18n'
-import type { Compare, Dimension, Filters, Meta, RangeKey, Section, View } from '../lib/types'
+import type { Compare, DateRange, Dimension, Filters, Meta, RangeKey, Section, View } from '../lib/types'
 import type { Theme } from './useTheme'
 
 export type Ctx = {
@@ -25,7 +25,8 @@ export type Ctx = {
   setArrived: (start: string | null, end: string | null) => void
   /** Replace the whole view (a preset, a pasted link). */
   applyView: (f: Filters, compare: Compare) => void
-  setCompare: (c: Compare) => void
+  /** Switch the comparison; for 'custom', the period to compare with (omitted: keep the one already chosen). */
+  setCompare: (c: Compare, range?: DateRange | null) => void
   reset: () => void
   applyAI: (patch: Partial<Filters> & { compare?: Compare }) => void
   undo: () => void

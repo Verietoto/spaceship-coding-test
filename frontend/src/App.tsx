@@ -79,7 +79,7 @@ function Shell() {
           <main className="content">
             <PrintHeader />
             {!isBuilder && <CommandBar copilot={copilot} />}
-            {hasFilters && <FilterBar showCompare={section === 'overview'} />}
+            {hasFilters && <FilterBar />}
             {content}
           </main>
           {!isBuilder && (

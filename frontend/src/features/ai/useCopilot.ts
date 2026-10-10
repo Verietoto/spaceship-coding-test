@@ -7,6 +7,7 @@ import { common } from '../../i18n/common'
 import { reduceSteps, finishSteps } from '../../lib/agentSteps'
 import type { AgentEvent, Step } from '../../lib/agentSteps'
 import { Unauthorized, errorText, streamEvents } from '../../lib/api'
+import { savedCompare } from '../../lib/types'
 import type { Calc, ChartSpec, Compare, Dimension, Filters, Section } from '../../lib/types'
 
 export type Change = { key: Dimension | 'start' | 'end' | 'exclude' | 'ranges' | 'arrived_start' | 'arrived_end' | 'compare'; from: unknown; to: unknown }
@@ -67,7 +68,7 @@ export function useCopilot() {
     setBusy(true)
     try {
       let response: CopilotResponse | null = null
-      const body = { message: text, history, filters: app.view.f, compare: app.view.compare, lang: app.lang }
+      const body = { message: text, history, filters: app.view.f, compare: savedCompare(app.view.compare), lang: app.lang }
       for await (const e of streamEvents<StreamEvent>('copilot/stream', body, controller.signal)) {
         if (mine !== chat.current) return // the chat was restarted while this was running
         if (e.type === 'error') throw new Error(e.message)

@@ -15,13 +15,14 @@ type KpiProps = {
   value: string
   isBad?: boolean
   delta?: Delta | null
-  cmpLabel: string
+  /** The value it is compared with, already worded ("previously 1,240"); empty when nothing is compared. */
+  cmp?: string
   sub: string
   /** What the metric means, in a sentence: the tooltip of its label. */
   hint: string
 }
 
-export function KpiCard({ icon, tone, label, value, isBad, delta, cmpLabel, sub, hint }: KpiProps) {
+export function KpiCard({ icon, tone, label, value, isBad, delta, cmp, sub, hint }: KpiProps) {
   const tc = useMessages(common)
   const fmt = useFormat()
   const deltaText =
@@ -41,7 +42,7 @@ export function KpiCard({ icon, tone, label, value, isBad, delta, cmpLabel, sub,
         <span className={`kpi-value${isBad ? ' bad' : ''}`}>{value}</span>
         {delta && <span className={`delta ${delta.tone}`}>{deltaText}</span>}
       </div>
-      <div className="kpi-cmp">{cmpLabel}</div>
+      <div className="kpi-cmp">{cmp}</div>
       <div className="kpi-sub">{sub}</div>
     </div>
   )

@@ -29,7 +29,7 @@ describe('the URL and the API query', () => {
 
   it('reads back what it wrote, for every kind of filter', () => {
     expect(fromSearch(toSearch(full, 'prev')).f).toEqual(full)
-    expect(fromSearch(toSearch(full, 'base'))).toEqual({ f: full, compare: 'base' })
+    expect(fromSearch(toSearch(full, 'base'))).toEqual({ f: full, compare: 'base', cmpRange: null })
   })
 
   it('ignores a bound that is not a number, an exclude with no values, and a bad date', () => {
@@ -80,5 +80,20 @@ describe('slug', () => {
     expect(slug({ ...DEFAULT_FILTERS, category: ['PAPER'], status: ['delayed'], exclude: ['status'], ranges: { value: [10, 50] } })).toBe('PAPER_not_delayed_value10-50')
     expect(slug({ ...DEFAULT_FILTERS, ranges: { lead: [null, 7] }, arrived_start: '2025-03-01' })).toBe('lead-7_arrived2025-03-01-')
     expect(slug(DEFAULT_FILTERS)).toBe('all')
+  })
+})
+
+describe('comparison with another period in the URL', () => {
+  const cmpRange = { start: '2025-01-01', end: '2025-06-30' }
+  it('round-trips the other period', () => {
+    const search = toSearch(full, 'custom', cmpRange)
+    expect(search).toContain('compare=custom')
+    expect(fromSearch(search)).toMatchObject({ compare: 'custom', cmpRange })
+  })
+  it('keeps the period out of the URL for the other modes and drops a broken one', () => {
+    expect(toSearch(full, 'base', cmpRange)).not.toContain('cmp_start')
+    expect(fromSearch('?compare=custom&cmp_start=2025-07-01&cmp_end=2025-01-01').cmpRange).toBeNull()
+    expect(fromSearch('?compare=custom&cmp_start=x').cmpRange).toBeNull()
+    expect(fromSearch('?compare=prev&cmp_start=2025-01-01&cmp_end=2025-06-30').cmpRange).toBeNull()
   })
 })

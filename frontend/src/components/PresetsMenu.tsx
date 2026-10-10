@@ -6,7 +6,7 @@ import { useApp } from '../app/useApp'
 import { useMessages } from '../i18n'
 import { filters as filtersMsg } from '../i18n/filters'
 import { Unauthorized, api, errorText } from '../lib/api'
-import { DEFAULT_FILTERS } from '../lib/types'
+import { DEFAULT_FILTERS, savedCompare } from '../lib/types'
 import type { Compare, Filters } from '../lib/types'
 import { Icon } from './Icon'
 import { useDismiss } from './useDismiss'
@@ -41,7 +41,7 @@ export function PresetsMenu() {
   const save = async (e: FormEvent) => {
     e.preventDefault()
     if (!name.trim()) return
-    if (await call(() => api('presets', {}, { name: name.trim(), filters: view.f, compare: view.compare }))) setName('')
+    if (await call(() => api('presets', {}, { name: name.trim(), filters: view.f, compare: savedCompare(view.compare) }))) setName('')
   }
 
   return (

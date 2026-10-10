@@ -57,3 +57,10 @@ export function addMonths(ym: string, n: number): string {
   const t = Number(ym.slice(0, 4)) * 12 + Number(ym.slice(5, 7)) - 1 + n
   return `${Math.floor(t / 12)}-${pad((t % 12) + 1)}`
 }
+
+/** The calendar month or quarter holding the newest data: what "last month / last quarter" means for this data set. */
+export function latestRange(kind: 'month' | 'quarter', max: string): [string, string] {
+  const year = Number(max.slice(0, 4))
+  const month = Number(max.slice(5, 7))
+  return presetRange(kind === 'month' ? `M${month}` : (`Q${Math.ceil(month / 3)}` as PresetCode), year)
+}

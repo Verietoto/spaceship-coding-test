@@ -14,7 +14,7 @@ def trend_window(f: Filters) -> tuple[date, date]:
     return date((f.start or lo).year, 1, 1), date((f.end or hi).year, 12, 31)
 
 
-def overview(f: Filters, compare: str, gran: str) -> dict:
+def overview(f: Filters, compare: str, gran: str, cmp_range: tuple[date | None, date | None] = (None, None)) -> dict:
     w_lo, w_hi = trend_window(f)
     bucket = "to_char(order_date, 'YYYY-MM')" if gran == "month" else "to_char(order_date, 'YYYY\"-Q\"Q')"
     trend_sql = (
@@ -30,12 +30,12 @@ def overview(f: Filters, compare: str, gran: str) -> dict:
     )
     return {
         "stats": stats(f),
-        "compare": comparison(f, compare),
+        "compare": comparison(f, compare, cmp_range),
         "trend": trend,
         "trend_base": trend_base,
         "window": {"start": w_lo.isoformat(), "end": w_hi.isoformat()},
         "hist": hist,  # bin 2 = "<=2 days", 9 = "9+ days"
-        "calc": calc(f, ["orders", "value", "delivered", "delay", "p90", "over7"]),
+        "calc": calc(f, ["orders", "delivered", "delay", "ontime", "mean", "atrisk"]),
     }
 
 

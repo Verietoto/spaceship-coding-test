@@ -1,6 +1,7 @@
 """Dashboard data: one endpoint per section, plus metadata and CSV export."""
 import csv
 import io
+from datetime import date
 from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -38,10 +39,12 @@ def facets(f: Filters = Depends(get_filters)) -> dict:
 @router.get("/overview")
 def overview(
     f: Filters = Depends(get_filters),
-    compare: Literal["prev", "base", "none"] = "prev",
+    compare: Literal["prev", "base", "none", "custom"] = "prev",
+    compare_start: date | None = None,
+    compare_end: date | None = None,
     gran: Literal["month", "quarter"] = "month",
 ) -> dict:
-    return sections.overview(f, compare, gran)
+    return sections.overview(f, compare, gran, (compare_start, compare_end))
 
 
 @router.get("/delivery")

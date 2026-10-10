@@ -88,6 +88,17 @@ export function MetricFormula({ metric, terms }: { metric: string; terms?: Terms
       return rate(t('l_delivered'), t('c_delivered'), t('c_orders'))
     case 'delay':
       return rate(t('l_delay'), t('c_delayed'), t('c_orders'))
+    case 'ontime':
+      return rate(t('l_ontime'), t('c_delivered'), t('c_final'))
+    case 'mean':
+      return (
+        <Row name={t('l_mean')}>
+          <Cap>{int('n')} {t('c_arrived')}</Cap>
+          <Eq />
+          <Result>{fmt.days(terms.value)}</Result>
+          <span className="fx-sub">{t('c_median')} <Num>{fmt.days(terms.median)}</Num> · P90 <Num>{fmt.days(terms.p90)}</Num></span>
+        </Row>
+      )
     case 'over7':
       return rate(t('l_over7'), t('c_over7'), t('c_arrived'))
     case 'p90':
