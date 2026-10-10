@@ -44,8 +44,8 @@ def test_wrong_credentials() -> None:
 
 
 def test_roles(client: TestClient, visitor: TestClient) -> None:
-    assert client.get("/api/me").json() == {"email": "admin@test.local", "role": "admin"}
-    assert visitor.get("/api/me").json() == {"email": "visitor@test.local", "role": "visitor"}
+    assert client.get("/api/me").json() == {"email": "admin@test.local", "role": "admin", "tour_version": 0}
+    assert visitor.get("/api/me").json() == {"email": "visitor@test.local", "role": "visitor", "tour_version": 0}
     assert visitor.get("/api/dashboards").status_code == 200
 
 

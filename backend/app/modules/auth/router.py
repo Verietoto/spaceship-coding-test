@@ -4,9 +4,9 @@ from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from ...core import config
 from ...core.config import SECURE_COOKIES, SESSION_HOURS
 from ...core.ratelimit import client_ip, limiter
-from ...core.security import SessionUser, current_user, make_session, read_session
-from .repository import revoke_sessions, verify
-from .schemas import Login
+from ...core.security import SessionUser, current_user, make_session, read_session, require_admin
+from .repository import list_users, mark_tour, reset_all_tours, reset_tour, revoke_sessions, tour_version, verify
+from .schemas import Login, TourSeen
 
 router = APIRouter(prefix="/api", tags=["auth"])
 FAIL_WINDOW = 15 * 60  # seconds that wrong passwords for one email are remembered
@@ -29,7 +29,29 @@ def login(body: Login, request: Request, response: Response) -> dict:
 
 @router.get("/me")
 def me(user: SessionUser = Depends(current_user)) -> dict:
-    return {"email": user.email, "role": user.role}
+    return {"email": user.email, "role": user.role, "tour_version": tour_version(user.id)}
+
+
+@router.post("/me/tour")
+def finish_tour(body: TourSeen, user: SessionUser = Depends(current_user)) -> dict:
+    return {"tour_version": mark_tour(user.id, body.version)}
+
+
+@router.get("/admin/users", dependencies=[Depends(require_admin)])
+def users() -> list[dict]:
+    return list_users()
+
+
+@router.post("/admin/users/{user_id}/tour/reset", dependencies=[Depends(require_admin)])
+def reset_user_tour(user_id: int) -> dict:
+    if not reset_tour(user_id):
+        raise HTTPException(404, "no such account")
+    return {"reset": 1}
+
+
+@router.post("/admin/tour/reset", dependencies=[Depends(require_admin)])
+def reset_every_tour() -> dict:
+    return {"reset": reset_all_tours()}
 
 
 @router.post("/logout")

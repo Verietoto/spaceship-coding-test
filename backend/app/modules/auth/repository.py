@@ -96,3 +96,42 @@ def revoke_sessions(user_id: int) -> None:
         if u:
             u.session_version += 1
 
+
+
+# ---------- the onboarding tour: shown once per account, an admin can reset it
+
+def tour_version(user_id: int) -> int:
+    with SessionLocal() as s:
+        u = s.get(User, user_id)
+    return u.tour_version if u else 0
+
+
+def mark_tour(user_id: int, version: int) -> int:
+    """The account finished (or skipped) this tour version. It only ever goes up, so an old page cannot bring the tour back."""
+    with SessionLocal.begin() as s:
+        u = s.get(User, user_id)
+        if u is None:
+            return 0
+        u.tour_version = max(u.tour_version, version)
+        return u.tour_version
+
+
+def list_users() -> list[dict]:
+    with SessionLocal() as s:
+        rows = s.scalars(select(User).order_by(User.email)).all()
+    return [{"id": u.id, "email": u.email, "role": u.role, "tour_version": u.tour_version, "created_at": u.created_at.isoformat()} for u in rows]
+
+
+def reset_tour(user_id: int) -> bool:
+    """The account sees the whole tour again on its next page load. False when there is no such account."""
+    with SessionLocal.begin() as s:
+        u = s.get(User, user_id)
+        if u is None:
+            return False
+        u.tour_version = 0
+        return True
+
+
+def reset_all_tours() -> int:
+    with SessionLocal.begin() as s:
+        return s.execute(update(User).values(tour_version=0)).rowcount
