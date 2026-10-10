@@ -15,7 +15,6 @@ RUN uv sync --frozen --no-dev
 COPY backend/app ./app
 COPY backend/alembic.ini ./
 COPY backend/migrations ./migrations
-COPY data /app/data
 COPY --from=web /web/dist /app/frontend/dist
 RUN useradd --create-home app && chown -R app /app/backend
 USER app
